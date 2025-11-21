@@ -1,0 +1,646 @@
+/* =========================================
+   1. VARIABEL & RESET (MODERN PALETTE)
+   ========================================= */
+:root {
+    /* Warna Utama dengan Nuansa Vivid */
+    --primary-color: #6c5ce7;
+    --primary-gradient: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    
+    /* Warna Indikator Keuangan */
+    --income-color: #00b894;
+    --expense-color: #ff7675;
+    --saving-color: #f39c12; /* Kuning/Oranye untuk Tabungan */
+    --text-color: #2d3436;
+    --text-muted: #636e72;
+    
+    /* Glassmorphism Settings */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-panel: rgba(255, 255, 255, 0.65);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+    --glass-highlight: 1px solid rgba(255, 255, 255, 0.8);
+    --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    --shadow-hover: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased; 
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    
+    /* Background Image */
+    background: url('WhatsApp Image 2025-11-16 at 19.01.09.jpeg') no-repeat center center fixed;
+    background-size: cover;
+    
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Custom Scrollbar (Agar lebih rapi) */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+::-webkit-scrollbar-thumb { background: rgba(108, 92, 231, 0.5); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(108, 92, 231, 0.8); }
+
+/* =========================================
+   2. APP CONTAINER (GLASS EFFECT)
+   ========================================= */
+.app-container {
+    width: 100%;
+    max-width: 1100px;
+    
+    /* Efek Frosted Glass Premium */
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    
+    border: var(--glass-highlight);
+    border-radius: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    
+    margin-bottom: 50px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================
+   3. HEADER
+   ========================================= */
+header {
+    background: rgba(255, 255, 255, 0.5);
+    padding: 25px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-left h1 {
+    font-size: 26px;
+    color: #2d3436;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-left h1 i { color: var(--primary-color); }
+
+.header-left small {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-left: 40px;
+    margin-top: -4px;
+    font-weight: 500;
+}
+
+.header-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Input Bulan Glassy */
+.glass-input {
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    font-family: inherit;
+    font-weight: 500;
+    color: #444;
+    cursor: pointer;
+    outline: none;
+    transition: 0.3s;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+}
+.glass-input:hover { background: white; }
+
+/* Tombol Ikon Bulat */
+.btn-icon {
+    background: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.btn-icon.danger { color: var(--expense-color); background: #fff5f5; }
+.btn-icon:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+
+main { padding: 30px 40px; }
+
+/* =========================================
+   4. SUMMARY CARDS (FLOATING)
+   ========================================= */
+.summary-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 35px;
+}
+
+.summary-card {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 25px;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,1);
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.summary-card h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.summary-card .amount {
+    font-size: 26px;
+    font-weight: 800;
+    position: relative;
+    z-index: 2;
+}
+
+.icon-bg {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    font-size: 80px;
+    opacity: 0.08;
+    transform: rotate(-20deg);
+    transition: 0.3s;
+}
+.summary-card:hover .icon-bg { transform: rotate(0deg) scale(1.1); opacity: 0.15; }
+
+.income .amount { color: var(--income-color); }
+.expense .amount { color: var(--expense-color); }
+.balance .amount { color: var(--primary-color); }
+
+/* =========================================
+   5. TARGET TABUNGAN (BARU)
+   ========================================= */
+.saving-goal-section {
+    background: var(--glass-panel);
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    margin-bottom: 30px;
+}
+
+.saving-goal-section h2 {
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+/* Menghilangkan after/garis pada H2 Tabungan jika tidak perlu */
+.saving-goal-section h2::after { content: none; }
+
+.saving-content {
+    display: flex;
+    gap: 40px;
+    align-items: center; /* Sejajarkan vertikal */
+    flex-wrap: wrap; 
+}
+
+.saving-info {
+    flex: 1.5;
+    min-width: 280px;
+}
+
+.saving-progress-box {
+    flex: 2;
+    min-width: 300px;
+    background: rgba(240, 240, 240, 0.9); 
+    padding: 20px;
+    border-radius: 15px;
+    height: 150px; /* Diperlukan agar progress box sejajar dengan info */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.form-control-inline {
+    margin-bottom: 20px;
+}
+.form-control-inline label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block;
+    color: #555;
+}
+
+.input-with-button {
+    display: flex;
+    gap: 10px;
+    width: 100%; 
+    align-items: center;
+}
+
+.saving-input {
+    flex: 2; 
+    padding: 12px 15px !important;
+    border-radius: 10px !important;
+    font-weight: 600;
+    font-size: 16px !important;
+    border: 1px solid #ddd;
+    background: white;
+}
+
+#set-goal-btn {
+    flex: 1; /* Agar tombol memiliki lebar yang proporsional */
+    padding: 12px 20px;
+    font-size: 14px;
+    width: auto;
+    margin-top: 0;
+    border-radius: 10px;
+}
+
+
+.saving-stats {
+    padding: 0;
+}
+
+.saving-stats p {
+    margin-bottom: 8px;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bold-stat {
+    font-weight: 700;
+}
+
+.saving-text { color: var(--saving-color); }
+.income-text { color: var(--income-color); }
+.deficit-text { color: var(--expense-color); } /* Kekurangan pakai warna merah */
+
+.progress-bar-container {
+    background: #ecf0f1;
+    border-radius: 10px;
+    height: 30px;
+    width: 100%;
+    margin-top: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--saving-color); /* Warna batang progress */
+    transition: width 0.5s ease-in-out;
+}
+
+.progress-percent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    color: #444; 
+    font-size: 14px;
+}
+
+/* =========================================
+   6. PANELS & CHARTS
+   ========================================= */
+.glass-panel {
+    background: var(--glass-panel);
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 20px;
+    margin-bottom: 25px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+/* Garis dekorasi kecil di bawah judul */
+h2::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--primary-gradient);
+    border-radius: 2px;
+    margin-left: 15px;
+    opacity: 0.5;
+}
+/* KECUALI UNTUK TARGET TABUNGAN DIATAS */
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.chart-box {
+    background: white;
+    padding: 20px;
+    border-radius: 20px;
+    height: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #f0f0f0;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
+}
+
+.chart-box h4 {
+    font-size: 15px;
+    margin-bottom: 15px;
+    color: #555;
+    font-weight: 600;
+}
+
+canvas { width: 100% !important; height: 100% !important; }
+
+/* =========================================
+   7. FORM & LIST
+   ========================================= */
+.content-layout { display: flex; gap: 30px; }
+.form-section, .history-section { flex: 1; }
+
+/* Form Input Styles (Tidak berubah) */
+.form-control { margin-bottom: 20px; }
+.form-control label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    letter-spacing: 0.5px;
+}
+
+input[type="text"], input[type="date"], select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    background: #f4f6f9; 
+    font-family: inherit;
+    font-size: 14px;
+    color: #333;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+}
+
+input:focus, select:focus {
+    background: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+}
+
+.row-group { display: flex; gap: 15px; }
+
+/* Tombol Utama dengan Gradient (Tidak berubah) */
+.btn {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 16px;
+    width: 100%;
+    border: none;
+    border-radius: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(108, 92, 231, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-cancel {
+    background: #dfe6e9;
+    color: #636e72;
+    box-shadow: none;
+}
+.btn-cancel:hover { background: #b2bec3; box-shadow: none; }
+
+/* List Riwayat */
+.history-list-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+#transaction-list { list-style: none; }
+
+#transaction-list li {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid white;
+    padding: 18px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+#transaction-list li:hover {
+    transform: scale(1.02);
+    background: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    z-index: 2;
+}
+
+#transaction-list li.income { border-left: 6px solid var(--income-color); }
+#transaction-list li.expense { border-left: 6px solid var(--expense-color); }
+#transaction-list li.saving { border-left: 6px solid var(--saving-color); } /* Style Saving */
+
+.history-date {
+    font-size: 11px;
+    background: rgba(0,0,0,0.05);
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: #666;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.action-btn {
+    background: white;
+    border: 1px solid #eee;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    transition: 0.2s;
+    margin-left: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.edit-btn { color: var(--primary-color); }
+.delete-btn { color: var(--expense-color); }
+.action-btn:hover { transform: scale(1.1); }
+
+/* =========================================
+   8. AI PERSONA (SESUAI GAMBAR)
+   ========================================= */
+/* Ubah nama kelas lama .unique-feature menjadi .ai-comment-section */
+.ai-comment-section {
+    margin-top: 20px;
+    margin-bottom: 40px;
+}
+/* Menghapus gaya glass-panel dari unique-feature karena sudah ada di HTML */
+
+/* KOTAK AI PUTUS-PUTUS UNGU */
+.feature-content {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    background: rgba(255, 255, 255, 0.9); /* Sedikit lebih putih */
+    padding: 25px;
+    border-radius: 15px; 
+    /* Style Border Putus-putus */
+    border: 3px dashed var(--primary-color); 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
+    position: relative;
+    overflow: hidden;
+}
+
+/* Menggunakan kelas yang sudah ada di HTML */
+.persona-icon {
+    font-size: 50px;
+    min-width: 60px;
+    text-align: center;
+    animation: float 3s ease-in-out infinite;
+    z-index: 1;
+    color: var(--primary-color);
+}
+
+.persona-desc {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: #444;
+    font-style: italic;
+    z-index: 1;
+}
+
+/* Animasi dipindahkan dari #persona-content ke .feature-content untuk menjaga border */
+.feature-content::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -50%;
+    width: 100%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+    transform: skewX(-25deg);
+    animation: shine 6s infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes shine {
+    0% { left: -50%; }
+    20% { left: 150%; }
+    100% { left: 150%; }
+}
+
+/* =========================================
+   9. RESPONSIF (HP & TABLET)
+   ========================================= */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+        align-items: flex-start;
+    }
+
+    .app-container {
+        border-radius: 0;
+        margin-bottom: 0;
+        min-height: 100vh;
+    }
+
+    header {
+        justify-content: center;
+        text-align: center;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .header-left h1 { justify-content: center; }
+    .header-left small { margin-left: 0; margin-top: 5px; }
+
+    .content-layout, 
+    .summary-container, 
+    .charts-grid {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+    
+    main { padding: 20px; }
+
+    .chart-box { height: 260px; }
+
+    .btn { padding: 14px; font-size: 14px; }
+
+    .saving-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .saving-info, .saving-progress-box {
+        min-width: 100%;
+    }
+}
