@@ -16,10 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submit-btn');
     const cancelBtn = document.getElementById('cancel-edit');
     const editIdInput = document.getElementById('edit-id');
-    const exportBtn = document.getElementById('export-btn');
-    const resetBtn = document.getElementById('reset-btn');
+    const exportBtn = document.getElementById('export-btn'); // DITAMBAH
+    const resetBtn = document.getElementById('reset-btn'); // DITAMBAH
 
-    // Saving Goal Elements (BARU)
+    // Saving Goal Elements
     const goalInput = document.getElementById('saving-goal');
     const setGoalBtn = document.getElementById('set-goal-btn');
     const displayTargetEl = document.getElementById('display-target');
@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayDeficitEl = document.getElementById('display-deficit');
     const progressBar = document.getElementById('saving-progress-bar');
     const progressPercent = document.getElementById('saving-progress-percent');
+    
+    // AI Comment Element
+    const personaDescEl = document.getElementById('persona-desc');
 
     // Chart Contexts
     const ctxExpense = document.getElementById('expenseChart') ? document.getElementById('expenseChart').getContext('2d') : null;
@@ -34,17 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE & VARIABLES ---
     let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let savingGoals = JSON.parse(localStorage.getItem('savingGoals')) || {}; // Target Tabungan
     let expenseChartInstance = null;
     let trendChartInstance = null;
     
-    // Simpan target tabungan per bulan (BARU)
-    let savingGoals = JSON.parse(localStorage.getItem('savingGoals')) || {}; 
-
     // Daftar Kategori
     const categories = {
         expense: ['Makanan', 'Transportasi', 'Tagihan', 'Hiburan', 'Belanja', 'Kesehatan', 'Pendidikan', 'Sedekah', 'Lainnya'],
         income: ['Gaji', 'Bonus', 'Freelance', 'Investasi', 'Hadiah', 'Lainnya'],
-        saving: ['Target Tabungan', 'Dana Darurat', 'Investasi'] // Kategori untuk tipe 'saving'
+        saving: ['Target Tabungan', 'Dana Darurat', 'Investasi']
     };
 
     // --- INIT ---
@@ -54,23 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         monthFilter.value = currentMonthStr;
 
-        updateCategories(); 
+        updateCategories();
         updateUI();
     }
 
     // --- HELPER FUNCTIONS ---
 
     function formatRupiah(number) {
+        // Menggunakan Math.abs untuk memastikan jumlah selalu positif saat diformat
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0
-        }).format(number);
+        }).format(Math.abs(number));
     }
     
     function updateLocalStorage() {
         localStorage.setItem('transactions', JSON.stringify(transactions));
-        localStorage.setItem('savingGoals', JSON.stringify(savingGoals)); // Simpan Goal BARU
+        localStorage.setItem('savingGoals', JSON.stringify(savingGoals));
     }
 
     function updateCategories() {
@@ -84,18 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Amount formatting listener
-    amountInput.addEventListener('input', function(e) {
+    // Amount formatting listener (Mengatur titik ribuan saat mengetik)
+    function formatInput(e) {
         let value = e.target.value.replace(/[^0-9]/g, '');
         e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    });
-
-    goalInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/[^0-9]/g, '');
-        e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    });
+    }
     
+    amountInput.addEventListener('input', formatInput);
+    goalInput.addEventListener('input', formatInput);
     typeInput.addEventListener('change', updateCategories);
+    monthFilter.addEventListener('change', updateUI); // Filter saat bulan berubah
 
     // --- CORE LOGIC: FILTERING ---
     function getCurrentMonthKey() {
@@ -107,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedMonth) return transactions;
         return transactions.filter(t => t.date.startsWith(selectedMonth));
     }
-
-    // --- SAVING GOAL LOGIC (BARU) ---
+    
+    // --- SAVING GOAL LOGIC ---
 
     setGoalBtn.addEventListener('click', () => {
         const rawAmount = goalInput.value.replace(/\./g, '');
@@ -141,18 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update display data
         displayTargetEl.innerText = formatRupiah(targetGoal);
         displayActualEl.innerText = formatRupiah(actualSavings);
-        displayDeficitEl.innerText = formatRupiah(deficit);
-
+        
         // Update warna Kekurangan
         displayDeficitEl.classList.remove('deficit-text', 'income-text');
         if (deficit > 0) {
+            displayDeficitEl.innerText = formatRupiah(deficit);
             displayDeficitEl.classList.add('deficit-text'); // Merah
         } else {
-            // Jika tidak ada kekurangan (target tercapai atau tidak ada target)
             displayDeficitEl.innerText = targetGoal > 0 ? "Target Tercapai!" : "Rp 0";
             displayDeficitEl.classList.add('income-text'); // Hijau jika tercapai
         }
-
 
         // Update progress bar
         progressBar.style.width = `${displayPercentage}%`;
@@ -164,12 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CRUD OPERATIONS ---
     form.addEventListener('submit', saveTransaction);
+    cancelBtn.addEventListener('click', exitEditMode);
 
     function saveTransaction(e) {
         e.preventDefault();
-        // ... (Logika validasi dan parsing sama) ...
+        
         const text = textInput.value.trim();
-        const rawAmount = amountInput.value.replace(/\./g, ''); 
+        const rawAmount = amountInput.value.replace(/\./g, '');
         const date = dateInput.value;
 
         if (text === '' || rawAmount === '' || date === '') {
@@ -188,12 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const editId = editIdInput.value;
 
         if (editId) {
+            // EDIT MODE
             const index = transactions.findIndex(t => t.id == editId);
             if (index !== -1) {
-                transactions[index] = { id: parseInt(editId), text, amount, type, category, date }; 
+                transactions[index] = { id: parseInt(editId), text, amount, type, category, date };
             }
             exitEditMode();
         } else {
+            // NEW TRANSACTION
             const transaction = {
                 id: Date.now(),
                 text, amount, type, category, date
@@ -204,10 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLocalStorage();
         updateUI();
         
+        // Reset form inputs (kecuali tanggal/tipe)
         textInput.value = '';
         amountInput.value = '';
-        // Tetap di tipe terakhir, jangan di-reset
-        // dateInput.valueAsDate = new Date(); 
     }
     
     window.removeTransaction = function(id) {
@@ -223,15 +223,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!t) return;
 
         textInput.value = t.text;
-        amountInput.value = t.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); 
+        amountInput.value = t.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         typeInput.value = t.type;
         dateInput.value = t.date;
-        updateCategories(); // Panggil agar kategori baru terisi
+        updateCategories();
         categoryInput.value = t.category;
         editIdInput.value = t.id;
 
         submitBtn.innerText = 'Update';
-        submitBtn.style.background = '#e67e22';
+        submitBtn.style.background = 'linear-gradient(135deg, #e67e22 0%, #f1c40f 100%)';
         cancelBtn.style.display = 'block';
         
         if(window.innerWidth < 768) {
@@ -242,256 +242,292 @@ document.addEventListener('DOMContentLoaded', () => {
     function exitEditMode() {
         editIdInput.value = '';
         submitBtn.innerText = 'Simpan';
-        submitBtn.style.background = '';
+        submitBtn.style.background = ''; // Kembali ke CSS default (primary gradient)
         cancelBtn.style.display = 'none';
         textInput.value = '';
         amountInput.value = '';
         dateInput.valueAsDate = new Date();
+        typeInput.value = 'expense';
         updateCategories();
     }
+    
+    // --- DISPLAY / RENDER UI ---
 
-    cancelBtn.addEventListener('click', exitEditMode);
-    monthFilter.addEventListener('change', updateUI);
+    function addTransactionDOM(transaction) {
+        const item = document.createElement('li');
+        item.classList.add(transaction.type);
 
-    // --- UI UPDATE MANAGER ---
-    function updateUI() {
-        const filteredData = getFilteredTransactions();
+        const rupiahAmount = formatRupiah(transaction.amount);
+        const displayAmount = transaction.type === 'expense' ? `- ${rupiahAmount}` : `+ ${rupiahAmount}`;
         
-        // Hanya hitung Income & Expense, abaikan Saving dari Summary
-        const summaryAmounts = filteredData.filter(t => t.type !== 'saving').map(t => t.type === 'income' ? t.amount : -t.amount);
-        
-        const total = summaryAmounts.reduce((acc, item) => (acc += item), 0);
-        const income = summaryAmounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0);
-        const expense = summaryAmounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1;
+        item.innerHTML = `
+            <div>
+                <span class="history-date">${transaction.date}</span>
+                <p><strong>${transaction.text}</strong><br><small>${transaction.category}</small></p>
+            </div>
+            <span>${displayAmount}</span>
+            <div class="actions">
+                <button onclick="editTransaction(${transaction.id})" class="action-btn edit-btn" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="removeTransaction(${transaction.id})" class="action-btn delete-btn" title="Hapus"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+        `;
 
-        balanceEl.innerText = formatRupiah(total);
+        listEl.appendChild(item);
+    }
+
+    function updateValues(filteredTransactions) {
+        const income = filteredTransactions
+            .filter(item => item.type === 'income')
+            .reduce((acc, item) => acc + item.amount, 0);
+
+        const expense = filteredTransactions
+            .filter(item => item.type === 'expense')
+            .reduce((acc, item) => acc + item.amount, 0);
+            
+        // Catatan: Transaksi 'saving' tidak mempengaruhi Saldo secara langsung, hanya Saldo Sisa
+        const saving = filteredTransactions
+            .filter(item => item.type === 'saving')
+            .reduce((acc, item) => acc + item.amount, 0);
+
+        const balance = income - expense - saving;
+
         incomeEl.innerText = formatRupiah(income);
         expenseEl.innerText = formatRupiah(expense);
-        
-        // Tambahkan kelas untuk saldo negatif
-        balanceEl.classList.toggle('negative', total < 0);
+        balanceEl.innerText = formatRupiah(balance);
 
-        listEl.innerHTML = '';
-        const sortedData = [...filteredData].sort((a, b) => new Date(b.date) - new Date(a.date)); 
-        
-        if (sortedData.length === 0) {
-            listEl.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Tidak ada data di bulan ini.</p>';
-        }
-
-        sortedData.forEach(t => {
-            const item = document.createElement('li');
-            item.classList.add(t.type);
-            const sign = t.type === 'income' ? '+' : (t.type === 'expense' ? '-' : ' '); // Saving tidak ada tanda +/- di list
-            const dateFormatted = new Date(t.date + 'T00:00:00').toLocaleDateString('id-ID', {day:'numeric', month:'short'}); 
-            
-            // Tentukan style untuk Saving (optional, bisa diatur di CSS)
-            const amountStyle = t.type === 'saving' ? `color: var(--saving-color);` : '';
-
-            item.innerHTML = `
-                <div>
-                    <h4>${t.text} <span class="history-date">${dateFormatted}</span></h4>
-                    <small>${t.category}</small>
-                </div>
-                <div style="text-align:right;">
-                    <span style="font-weight:bold; display:block; ${amountStyle}">${sign} ${formatRupiah(t.amount)}</span>
-                    <div style="margin-top:5px;">
-                        <button class="action-btn edit-btn" onclick="editTransaction(${t.id})"><i class="fa-solid fa-pen"></i></button>
-                        <button class="action-btn delete-btn" style="color:#ff7675; margin-left:5px;" onclick="removeTransaction(${t.id})"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `;
-            listEl.appendChild(item);
-        });
-
-        // Panggil update UI Saving Goal
-        updateSavingGoalUI();
-
-        generateAIInsight(income, expense, filteredData.filter(t => t.type !== 'saving')); // Data AI tanpa Saving
-        renderCharts(filteredData.filter(t => t.type === 'expense')); // Chart hanya butuh data expense
+        return { income, expense, balance, saving };
     }
 
-    // --- LOGIKA AI CERDAS (SEDERHANA) ---
-    function generateAIInsight(inc, exp, transactions) {
-        const iconEl = document.getElementById('persona-icon');
-        const descEl = document.getElementById('persona-desc');
-        if (!iconEl || !descEl) return;
-        
-        let categoryTotals = {};
-        transactions.forEach(t => {
-            if(t.type === 'expense') {
-                categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
-            }
-        });
+    function generateAIComment(stats) {
+        let comment = "Selamat datang! Masukkan transaksi pertamamu untuk memulai analisis cerdas.";
+        const { income, expense, balance } = stats;
 
-        let insights = [];
-
-        // A. Logika Kondisi Kritis
-        if (inc === 0 && exp === 0) {
-            setAI('😴', 'Data masih kosong nih. Yuk catat transaksi pertamamu!'); return;
+        if (transactions.length === 0) {
+            personaDescEl.innerText = comment;
+            return;
         }
-        if (exp > inc) {
-            setAI('🚨', 'Waspada! Pengeluaranmu lebih besar dari pemasukan (Besar Pasak daripada Tiang). Rem belanjaan!'); return;
-        }
-        
-        // B. Logika Kategori Spesifik
-        if (exp > 0) {
-            const totalMakanan = categoryTotals['Makanan'] || 0;
-            if (totalMakanan > 0 && (totalMakanan / exp) > 0.4) {
-                insights.push({ icon: '🍔', text: "Waduh, 40% uangmu habis di perut! Coba masak sendiri yuk, lebih hemat." });
-            }
 
-            if (((categoryTotals['Hiburan'] || 0) + (categoryTotals['Belanja'] || 0)) > (exp * 0.3)) {
-                insights.push({ icon: '🛍️', text: "Self-reward itu perlu, tapi jangan sampai boncos ya! Tahan belanja online." });
+        if (balance >= 0) {
+            if (expense === 0) {
+                 comment = "💰 Hebat! Bulan ini kamu belum mencatat pengeluaran. Kelola baik-baik sisa saldo kamu!";
+            } else if (balance > 0.5 * income) {
+                comment = `✨ Kinerja keuangan sangat baik! Saldo sisa (${formatRupiah(balance)}) menunjukkan pengelolaan uang yang **disiplin**. Pertahankan!`;
+            } else if (balance > 0) {
+                comment = `👍 Bagus. Pemasukan lebih besar dari pengeluaran (${formatRupiah(balance)}). Coba alokasikan lebih banyak untuk tabungan bulan depan.`;
+            } else {
+                comment = "Sisa saldo Rp 0. Arus kas bulan ini netral. Perlu dicatat jika ada sisa dana di bulan lalu.";
             }
-        } 
-
-        // C. Logika Positif
-        if (categoryTotals['Sedekah'] && categoryTotals['Sedekah'] > 0) {
-            insights.push({ icon: '🤲', text: "Harta tidak akan berkurang karena sedekah. Keren!" });
-        }
-        if (inc > 0 && exp < inc) {
-            if ((inc - exp) / inc > 0.5) {
-                insights.push({ icon: '👑', text: "Luar biasa! Kamu berhasil menabung lebih dari 50% pendapatanmu." });
-            } else if (insights.length === 0) { 
-                insights.push({ icon: '✅', text: "Keuanganmu cukup stabil. Pertahankan dan jangan lupa menabung." });
+        } else {
+            if (expense > 1.2 * income) {
+                comment = `🚨 **KRITIS!** Pengeluaran kamu (${formatRupiah(expense)}) jauh melebihi pemasukan. Segera tinjau kategori pengeluaran tertinggi!`;
+            } else {
+                comment = `⚠️ Saldo kamu **minus** ${formatRupiah(balance)}. Ini alarm! Cari tahu sumber kebocoran dan kurangi pengeluaran non-esensial.`;
             }
         }
         
-        // D. PEMILIHAN SARAN
-        const selected = insights.length > 0 ? insights[0] : { icon: '🤔', text: 'Terus catat keuanganmu agar insight AI makin akurat!'};
-        setAI(selected.icon, selected.text);
+        personaDescEl.innerText = comment;
     }
 
-    function setAI(icon, text) {
-        document.getElementById('persona-icon').innerText = icon;
-        document.getElementById('persona-desc').innerText = text;
-    }
+    // --- CHART LOGIC ---
+    
+    function updateCharts(filteredTransactions) {
+        // 1. Expense by Category Chart (Donut/Doughnut)
+        const expenseData = filteredTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
 
-    // --- CHART.JS IMPLEMENTATION ---
-    function renderCharts(expenseData) {
-        if (!ctxExpense || !ctxTrend) return;
+        const expenseLabels = Object.keys(expenseData);
+        const expenseAmounts = Object.values(expenseData);
+
+        const colors = ['#ff7675', '#a29bfe', '#ffeaa7', '#00b894', '#fd79a8', '#6c5ce7', '#0984e3', '#f39c12', '#d63031'];
         
-        // 1. Chart Pengeluaran per Kategori (Doughnut)
-        const expenseCats = {};
-        expenseData.forEach(t => {
-            expenseCats[t.category] = (expenseCats[t.category] || 0) + t.amount;
-        });
+        if (expenseChartInstance) {
+            expenseChartInstance.destroy();
+        }
         
-        if (expenseChartInstance) expenseChartInstance.destroy();
-        expenseChartInstance = new Chart(ctxExpense, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(expenseCats),
-                datasets: [{
-                    data: Object.values(expenseCats),
-                    backgroundColor: [
-                        '#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ffeaa7',
-                        '#fd79a8', '#00b894', '#6c5ce7', '#dfe6e9'
-                    ],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    },
-                    title: {
-                        display: false
-                    }
-                }
-            }
-        });
-
-        // 2. Chart Arus Kas Bulanan (Line/Bar)
-        // Data Arus Kas (Income - Expense) per Hari
-        const dataForTrend = getFilteredTransactions().filter(t => t.type !== 'saving'); // Tanpa Saving
-        const daysInMonth = {};
-        dataForTrend.forEach(t => {
-            const day = parseInt(t.date.split('-')[2]);
-            if (!daysInMonth[day]) daysInMonth[day] = 0;
-            if (t.type === 'income') daysInMonth[day] += t.amount;
-            else daysInMonth[day] -= t.amount;
-        });
-            
-        const labels = Object.keys(daysInMonth).sort((a,b) => parseInt(a)-parseInt(b));
-        const cumulativeData = [];
-        let runningBalance = 0;
-
-        labels.forEach(day => {
-            runningBalance += daysInMonth[day];
-            cumulativeData.push(runningBalance);
-        });
-
-        if (trendChartInstance) trendChartInstance.destroy();
-        trendChartInstance = new Chart(ctxTrend, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Arus Kas Kumulatif',
-                    data: cumulativeData,
-                    backgroundColor: 'rgba(108, 92, 231, 0.2)',
-                    borderColor: 'var(--primary-color)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return formatRupiah(value);
-                            }
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Tanggal Bulan Ini'
-                        }
-                    }
+        if (ctxExpense) {
+            expenseChartInstance = new Chart(ctxExpense, {
+                type: 'doughnut',
+                data: {
+                    labels: expenseLabels,
+                    datasets: [{
+                        data: expenseAmounts,
+                        backgroundColor: colors.slice(0, expenseLabels.length),
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
                 },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += formatRupiah(context.parsed.y);
-                                return label;
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { callbacks: { label: (context) => formatRupiah(context.parsed) } }
                     }
                 }
-            }
+            });
+        }
+        
+        // 2. Monthly Trend Chart (Bar)
+        // Dapatkan semua tanggal unik di bulan ini
+        const datesInMonth = filteredTransactions
+            .map(t => t.date.split('-')[2]) // Ambil hari (contoh: 01, 05)
+            .filter((value, index, self) => self.indexOf(value) === index)
+            .sort((a, b) => parseInt(a) - parseInt(b));
+
+        const trendData = datesInMonth.map(day => {
+            const dailyIncome = filteredTransactions
+                .filter(t => t.date.endsWith(day) && t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const dailyExpense = filteredTransactions
+                .filter(t => t.date.endsWith(day) && t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            return { day: parseInt(day), income: dailyIncome, expense: dailyExpense };
         });
+
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+        }
+
+        if (ctxTrend) {
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                    labels: trendData.map(d => d.day), // Label Hari
+                    datasets: [
+                        {
+                            label: 'Pemasukan Harian',
+                            data: trendData.map(d => d.income),
+                            backgroundColor: '#00b894',
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Pengeluaran Harian',
+                            data: trendData.map(d => d.expense),
+                            backgroundColor: '#ff7675',
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Jumlah (Rp)' } },
+                        x: { title: { display: true, text: 'Tanggal (Hari)' } }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => `${context.dataset.label}: ${formatRupiah(context.parsed.y)}` } }
+                    }
+                }
+            });
+        }
     }
 
-    // --- INITIALIZE APP ---
-    form.addEventListener('submit', saveTransaction);
-    monthFilter.addEventListener('change', updateUI);
-    // Tambahkan listener untuk Goal Input agar bisa diformat
 
-    // Reset All Data
+    // --- EXPORT CSV LOGIC (FIXED) ---
+
+    function convertToCSV(data) {
+        if (data.length === 0) return '';
+
+        // Header CSV (Menggunakan koma sebagai delimiter)
+        const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Deskripsi', 'Jumlah'];
+
+        // Membuat baris header
+        const csvArray = [];
+        csvArray.push(headers.join(','));
+
+        // Membuat baris data
+        data.forEach(item => {
+            // Format jumlah tanpa titik ribuan untuk kompatibilitas Excel/CSV
+            // Catatan: Jika ini Pemasukan, biarkan positif. Jika Pengeluaran/Tabungan, gunakan tanda negatif
+            let amountSign = item.type === 'expense' ? -item.amount : item.amount;
+            amountSign = item.type === 'saving' ? -item.amount : amountSign; // Perlakukan Tabungan sebagai arus keluar
+            
+            const amountClean = amountSign.toString().replace(/\./g, '');
+            
+            // Memastikan deskripsi yang mungkin mengandung koma diapit dengan tanda kutip ganda
+            // Escape tanda kutip ganda di dalam teks
+            const escapedText = item.text.replace(/"/g, '""'); 
+            
+            const row = [
+                item.id,
+                item.date,
+                item.type.charAt(0).toUpperCase() + item.type.slice(1),
+                item.category,
+                `"${escapedText}"`,
+                amountClean
+            ];
+            csvArray.push(row.join(','));
+        });
+
+        return csvArray.join('\n');
+    }
+
+    function downloadCSV(csv, filename) {
+        const csvFile = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' }); // Tambahkan BOM untuk kompatibilitas Excel Indonesia
+        const downloadLink = document.createElement('a');
+        
+        const monthKey = getCurrentMonthKey();
+        downloadLink.download = `Laporan_Keuangan_${filename}_${monthKey}.csv`;
+        
+        downloadLink.href = URL.createObjectURL(csvFile);
+        downloadLink.style.display = 'none';
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+    
+    // Event Listener untuk Tombol Export
+    exportBtn.addEventListener('click', () => {
+        const dataToExport = getFilteredTransactions(); 
+
+        if (dataToExport.length === 0) {
+            alert('Tidak ada data transaksi di bulan ini untuk diekspor.');
+            return;
+        }
+
+        const csvData = convertToCSV(dataToExport);
+        downloadCSV(csvData, 'Transaksi');
+    });
+
+    // --- RESET DATA ---
     resetBtn.addEventListener('click', () => {
-        if(confirm('Apakah Anda yakin ingin menghapus SEMUA data transaksi dan target tabungan? Aksi ini tidak dapat dibatalkan.')) {
+        if (confirm('APAKAH ANDA YAKIN INGIN MENGHAPUS SEMUA DATA TRANSAKSI DAN TARGET TABUNGAN? Aksi ini tidak dapat dibatalkan.')) {
             localStorage.removeItem('transactions');
             localStorage.removeItem('savingGoals');
             transactions = [];
             savingGoals = {};
-            init();
+            updateUI();
+            alert('Semua data telah direset.');
         }
     });
 
+    // --- MAIN UPDATE FUNCTION ---
+
+    function updateUI() {
+        const filteredTransactions = getFilteredTransactions().sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by Date descending
+        
+        listEl.innerHTML = '';
+        if (filteredTransactions.length === 0) {
+            listEl.innerHTML = '<li style="justify-content: center; font-style: italic; color: #7f8c8d;">Belum ada transaksi di bulan ini.</li>';
+        } else {
+            filteredTransactions.forEach(addTransactionDOM);
+        }
+
+        const stats = updateValues(filteredTransactions);
+        updateSavingGoalUI(); // Update UI Target Tabungan
+        updateCharts(filteredTransactions); // Update Charts
+        generateAIComment(stats); // Update Komentar AI
+    }
+
+    // --- START APP ---
     init();
 });
