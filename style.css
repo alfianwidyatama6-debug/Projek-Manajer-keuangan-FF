@@ -33,7 +33,7 @@ body {
     font-family: 'Poppins', sans-serif;
     
     /* Background Image */
-    background: url('WhatsApp Image 2025-11-21 at 11.23.52.jpeg') no-repeat center center fixed;
+    background: url('WhatsApp Image 2025-11-16 at 19.01.09.jpeg') no-repeat center center fixed;
     background-size: cover;
     
     color: var(--text-color);
@@ -207,6 +207,8 @@ main { padding: 30px 40px; }
 .income .amount { color: var(--income-color); }
 .expense .amount { color: var(--expense-color); }
 .balance .amount { color: var(--primary-color); }
+.balance .amount:has(.-) { color: var(--expense-color); } /* Opsional: Warna merah untuk saldo minus */
+
 
 /* =========================================
    5. TARGET TABUNGAN (BARU)
