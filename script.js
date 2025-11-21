@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submit-btn');
     const cancelBtn = document.getElementById('cancel-edit');
     const editIdInput = document.getElementById('edit-id');
-    const exportBtn = document.getElementById('export-btn'); // DITAMBAH
-    const resetBtn = document.getElementById('reset-btn'); // DITAMBAH
+    const exportBtn = document.getElementById('export-btn'); 
+    const resetBtn = document.getElementById('reset-btn'); 
 
     // Saving Goal Elements
     const goalInput = document.getElementById('saving-goal');
@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INIT ---
     function init() {
+        // Set tanggal input default ke hari ini
         dateInput.valueAsDate = new Date();
+        
+        // Set filter bulan default ke bulan ini
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         monthFilter.value = currentMonthStr;
@@ -62,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- HELPER FUNCTIONS ---
 
     function formatRupiah(number) {
-        // Menggunakan Math.abs untuk memastikan jumlah selalu positif saat diformat
+        // Fungsi ini menggunakan Math.abs agar logika penentuan tanda (-) dilakukan di fungsi lain (updateValues)
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0
-        }).format(Math.abs(number));
+        }).format(Math.abs(number)); 
     }
     
     function updateLocalStorage() {
@@ -95,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     amountInput.addEventListener('input', formatInput);
     goalInput.addEventListener('input', formatInput);
     typeInput.addEventListener('change', updateCategories);
-    monthFilter.addEventListener('change', updateUI); // Filter saat bulan berubah
+    monthFilter.addEventListener('change', updateUI); 
 
     // --- CORE LOGIC: FILTERING ---
     function getCurrentMonthKey() {
@@ -130,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentMonth = getCurrentMonthKey();
         const targetGoal = savingGoals[currentMonth] || 0;
         
-        // Filter transaksi TIPE 'saving' untuk bulan ini
         const savingTransactions = getFilteredTransactions().filter(t => t.type === 'saving');
         const actualSavings = savingTransactions.reduce((sum, t) => sum + t.amount, 0);
 
@@ -138,25 +140,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const percentage = targetGoal > 0 ? (actualSavings / targetGoal) * 100 : 0;
         const displayPercentage = Math.min(100, percentage).toFixed(0);
 
-        // Update display data
         displayTargetEl.innerText = formatRupiah(targetGoal);
         displayActualEl.innerText = formatRupiah(actualSavings);
         
-        // Update warna Kekurangan
         displayDeficitEl.classList.remove('deficit-text', 'income-text');
         if (deficit > 0) {
             displayDeficitEl.innerText = formatRupiah(deficit);
-            displayDeficitEl.classList.add('deficit-text'); // Merah
+            displayDeficitEl.classList.add('deficit-text'); 
         } else {
             displayDeficitEl.innerText = targetGoal > 0 ? "Target Tercapai!" : "Rp 0";
-            displayDeficitEl.classList.add('income-text'); // Hijau jika tercapai
+            if (targetGoal > 0 || actualSavings > 0) {
+                displayDeficitEl.classList.add('income-text');
+            }
         }
 
-        // Update progress bar
         progressBar.style.width = `${displayPercentage}%`;
         progressPercent.innerText = `${displayPercentage}%`;
 
-        // Update input field
         goalInput.value = targetGoal > 0 ? targetGoal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
     }
 
@@ -187,14 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const editId = editIdInput.value;
 
         if (editId) {
-            // EDIT MODE
             const index = transactions.findIndex(t => t.id == editId);
             if (index !== -1) {
                 transactions[index] = { id: parseInt(editId), text, amount, type, category, date };
             }
             exitEditMode();
         } else {
-            // NEW TRANSACTION
             const transaction = {
                 id: Date.now(),
                 text, amount, type, category, date
@@ -205,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLocalStorage();
         updateUI();
         
-        // Reset form inputs (kecuali tanggal/tipe)
         textInput.value = '';
         amountInput.value = '';
     }
@@ -231,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editIdInput.value = t.id;
 
         submitBtn.innerText = 'Update';
-        submitBtn.style.background = 'linear-gradient(135deg, #e67e22 0%, #f1c40f 100%)';
+        submitBtn.style.background = 'linear-gradient(135deg, #e67e22 0%, #f1c40f 100%)'; 
         cancelBtn.style.display = 'block';
         
         if(window.innerWidth < 768) {
@@ -242,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function exitEditMode() {
         editIdInput.value = '';
         submitBtn.innerText = 'Simpan';
-        submitBtn.style.background = ''; // Kembali ke CSS default (primary gradient)
+        submitBtn.style.background = ''; 
         cancelBtn.style.display = 'none';
         textInput.value = '';
         amountInput.value = '';
@@ -258,7 +255,15 @@ document.addEventListener('DOMContentLoaded', () => {
         item.classList.add(transaction.type);
 
         const rupiahAmount = formatRupiah(transaction.amount);
-        const displayAmount = transaction.type === 'expense' ? `- ${rupiahAmount}` : `+ ${rupiahAmount}`;
+        let displayAmount;
+
+        if (transaction.type === 'income') {
+            displayAmount = `+ ${rupiahAmount}`;
+        } else if (transaction.type === 'expense') {
+            displayAmount = `- ${rupiahAmount}`;
+        } else {
+            displayAmount = `💰 ${rupiahAmount}`;
+        }
         
         item.innerHTML = `
             <div>
@@ -284,23 +289,33 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(item => item.type === 'expense')
             .reduce((acc, item) => acc + item.amount, 0);
             
-        // Catatan: Transaksi 'saving' tidak mempengaruhi Saldo secara langsung, hanya Saldo Sisa
         const saving = filteredTransactions
             .filter(item => item.type === 'saving')
             .reduce((acc, item) => acc + item.amount, 0);
 
-        const balance = income - expense - saving;
+        const totalExpenseAndSaving = expense + saving;
+        const balance = income - totalExpenseAndSaving; // Saldo sesungguhnya
+
+        // --- PERBAIKAN LOGIKA TAMPILAN SALDO ---
+        let displayBalance;
+        if (balance < 0) {
+            // Tampilkan tanda "-" di depan hasil formatRupiah (yang menggunakan Math.abs)
+            displayBalance = `- ${formatRupiah(balance)}`; 
+        } else {
+            displayBalance = formatRupiah(balance);
+        }
+        // ---------------------------------------
 
         incomeEl.innerText = formatRupiah(income);
-        expenseEl.innerText = formatRupiah(expense);
-        balanceEl.innerText = formatRupiah(balance);
+        expenseEl.innerText = formatRupiah(totalExpenseAndSaving); // Tampilkan total pengeluaran + saving
+        balanceEl.innerText = displayBalance; 
 
-        return { income, expense, balance, saving };
+        return { income, expense: totalExpenseAndSaving, balance, saving }; 
     }
 
     function generateAIComment(stats) {
         let comment = "Selamat datang! Masukkan transaksi pertamamu untuk memulai analisis cerdas.";
-        const { income, expense, balance } = stats;
+        const { income, expense, balance } = stats; // expense kini mencakup saving
 
         if (transactions.length === 0) {
             personaDescEl.innerText = comment;
@@ -308,20 +323,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (balance >= 0) {
-            if (expense === 0) {
-                 comment = "💰 Hebat! Bulan ini kamu belum mencatat pengeluaran. Kelola baik-baik sisa saldo kamu!";
-            } else if (balance > 0.5 * income) {
+            if (expense === 0 && income > 0) {
+                 comment = "💰 Hebat! Bulan ini kamu belum mencatat pengeluaran, atau semuanya berjalan sangat baik. Kelola sisa saldo kamu!";
+            } else if (balance > 0.5 * income && income > 0) {
                 comment = `✨ Kinerja keuangan sangat baik! Saldo sisa (${formatRupiah(balance)}) menunjukkan pengelolaan uang yang **disiplin**. Pertahankan!`;
             } else if (balance > 0) {
-                comment = `👍 Bagus. Pemasukan lebih besar dari pengeluaran (${formatRupiah(balance)}). Coba alokasikan lebih banyak untuk tabungan bulan depan.`;
+                comment = `👍 Bagus. Pemasukan lebih besar dari pengeluaran (${formatRupiah(balance)}). Coba alokasikan lebih banyak untuk target tabungan bulan depan.`;
             } else {
-                comment = "Sisa saldo Rp 0. Arus kas bulan ini netral. Perlu dicatat jika ada sisa dana di bulan lalu.";
+                comment = "Sisa saldo Rp 0. Arus kas bulan ini netral. Pertimbangkan pengeluaranmu.";
             }
         } else {
-            if (expense > 1.2 * income) {
-                comment = `🚨 **KRITIS!** Pengeluaran kamu (${formatRupiah(expense)}) jauh melebihi pemasukan. Segera tinjau kategori pengeluaran tertinggi!`;
+            // Logika untuk Saldo Minus
+            const absBalance = Math.abs(balance);
+            if (income > 0 && expense > 1.2 * income) {
+                comment = `🚨 **KRITIS!** Pengeluaran total kamu (${formatRupiah(expense)}) jauh melebihi pemasukan. Saldo minus ${formatRupiah(absBalance)}. Segera tinjau!`;
             } else {
-                comment = `⚠️ Saldo kamu **minus** ${formatRupiah(balance)}. Ini alarm! Cari tahu sumber kebocoran dan kurangi pengeluaran non-esensial.`;
+                comment = `⚠️ Saldo kamu **defisit** sebesar ${formatRupiah(absBalance)}. Ini alarm! Cari tahu sumber kebocoran dan kurangi pengeluaran non-esensial.`;
             }
         }
         
@@ -365,30 +382,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom' },
-                        tooltip: { callbacks: { label: (context) => formatRupiah(context.parsed) } }
+                        tooltip: { 
+                            callbacks: { 
+                                label: (context) => `${context.label}: ${formatRupiah(context.parsed)}` 
+                            } 
+                        }
                     }
                 }
             });
         }
         
         // 2. Monthly Trend Chart (Bar)
-        // Dapatkan semua tanggal unik di bulan ini
-        const datesInMonth = filteredTransactions
-            .map(t => t.date.split('-')[2]) // Ambil hari (contoh: 01, 05)
-            .filter((value, index, self) => self.indexOf(value) === index)
-            .sort((a, b) => parseInt(a) - parseInt(b));
+        const currentMonth = getCurrentMonthKey();
+        if (!currentMonth) return;
 
-        const trendData = datesInMonth.map(day => {
+        const daysInMonth = new Date(currentMonth.split('-')[0], currentMonth.split('-')[1], 0).getDate();
+        const trendLabels = Array.from({length: daysInMonth}, (_, i) => i + 1); 
+
+        const dailyData = Array(daysInMonth).fill(0).map((_, i) => {
+            const dayString = String(i + 1).padStart(2, '0');
             const dailyIncome = filteredTransactions
-                .filter(t => t.date.endsWith(day) && t.type === 'income')
+                .filter(t => t.date.endsWith(dayString) && t.type === 'income')
                 .reduce((sum, t) => sum + t.amount, 0);
 
+            // Pengeluaran Harian mencakup Expense dan Saving
             const dailyExpense = filteredTransactions
-                .filter(t => t.date.endsWith(day) && t.type === 'expense')
+                .filter(t => t.date.endsWith(dayString) && (t.type === 'expense' || t.type === 'saving'))
                 .reduce((sum, t) => sum + t.amount, 0);
             
-            return { day: parseInt(day), income: dailyIncome, expense: dailyExpense };
+            return { income: dailyIncome, expense: dailyExpense };
         });
+
 
         if (trendChartInstance) {
             trendChartInstance.destroy();
@@ -398,17 +422,17 @@ document.addEventListener('DOMContentLoaded', () => {
             trendChartInstance = new Chart(ctxTrend, {
                 type: 'bar',
                 data: {
-                    labels: trendData.map(d => d.day), // Label Hari
+                    labels: trendLabels, 
                     datasets: [
                         {
                             label: 'Pemasukan Harian',
-                            data: trendData.map(d => d.income),
+                            data: dailyData.map(d => d.income),
                             backgroundColor: '#00b894',
                             borderRadius: 4,
                         },
                         {
                             label: 'Pengeluaran Harian',
-                            data: trendData.map(d => d.expense),
+                            data: dailyData.map(d => d.expense),
                             backgroundColor: '#ff7675',
                             borderRadius: 4,
                         }
@@ -423,7 +447,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     plugins: {
                         legend: { position: 'top' },
-                        tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => `${context.dataset.label}: ${formatRupiah(context.parsed.y)}` } }
+                        tooltip: { mode: 'index', intersect: false, 
+                            callbacks: { 
+                                label: (context) => `${context.dataset.label}: ${formatRupiah(context.parsed.y)}` 
+                            } 
+                        }
                     }
                 }
             });
@@ -431,29 +459,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- EXPORT CSV LOGIC (FIXED) ---
+    // --- EXPORT CSV LOGIC ---
 
     function convertToCSV(data) {
         if (data.length === 0) return '';
 
-        // Header CSV (Menggunakan koma sebagai delimiter)
         const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Deskripsi', 'Jumlah'];
 
-        // Membuat baris header
         const csvArray = [];
         csvArray.push(headers.join(','));
 
-        // Membuat baris data
         data.forEach(item => {
-            // Format jumlah tanpa titik ribuan untuk kompatibilitas Excel/CSV
-            // Catatan: Jika ini Pemasukan, biarkan positif. Jika Pengeluaran/Tabungan, gunakan tanda negatif
-            let amountSign = item.type === 'expense' ? -item.amount : item.amount;
-            amountSign = item.type === 'saving' ? -item.amount : amountSign; // Perlakukan Tabungan sebagai arus keluar
+            // Logika: Income = Positif (+), Expense/Saving = Negatif (-)
+            let amountSign = item.amount;
+            if (item.type === 'expense' || item.type === 'saving') {
+                amountSign = -item.amount;
+            }
             
             const amountClean = amountSign.toString().replace(/\./g, '');
             
-            // Memastikan deskripsi yang mungkin mengandung koma diapit dengan tanda kutip ganda
-            // Escape tanda kutip ganda di dalam teks
             const escapedText = item.text.replace(/"/g, '""'); 
             
             const row = [
@@ -461,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.date,
                 item.type.charAt(0).toUpperCase() + item.type.slice(1),
                 item.category,
-                `"${escapedText}"`,
+                `"${escapedText}"`, 
                 amountClean
             ];
             csvArray.push(row.join(','));
@@ -471,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function downloadCSV(csv, filename) {
-        const csvFile = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' }); // Tambahkan BOM untuk kompatibilitas Excel Indonesia
+        const csvFile = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' }); 
         const downloadLink = document.createElement('a');
         
         const monthKey = getCurrentMonthKey();
@@ -485,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(downloadLink);
     }
     
-    // Event Listener untuk Tombol Export
     exportBtn.addEventListener('click', () => {
         const dataToExport = getFilteredTransactions(); 
 
@@ -513,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MAIN UPDATE FUNCTION ---
 
     function updateUI() {
-        const filteredTransactions = getFilteredTransactions().sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by Date descending
+        const filteredTransactions = getFilteredTransactions().sort((a, b) => new Date(b.date) - new Date(a.date)); 
         
         listEl.innerHTML = '';
         if (filteredTransactions.length === 0) {
@@ -523,9 +546,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const stats = updateValues(filteredTransactions);
-        updateSavingGoalUI(); // Update UI Target Tabungan
-        updateCharts(filteredTransactions); // Update Charts
-        generateAIComment(stats); // Update Komentar AI
+        updateSavingGoalUI(); 
+        updateCharts(filteredTransactions); 
+        generateAIComment(stats);
     }
 
     // --- START APP ---
